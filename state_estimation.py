@@ -1,4 +1,4 @@
-
+import nlopt
 
 
 
@@ -6,7 +6,7 @@ class Estimator:
 
 
     def __init__(self):
-        pass
+        opt = nlopt.opt(, n)
 
     def senseParts(self,parts):
         pass
