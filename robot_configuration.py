@@ -2,7 +2,7 @@
 
 class Marker:
 
-    MARKER_SIZE = 0.0145
+    MARKER_SIZE = 0.045
 
     def __init__(self, id, origin_rotation, origin_translation):
         self.id = id
@@ -25,3 +25,12 @@ class Robot:
 
     def addLink(self, link_id, transform_matrix):
         self.links[link_id] = transform_matrix
+
+    def getMarker(self, id):
+        for (link, marker) in self.markers.items():
+            if id == marker.id:
+                return marker, link
+        return None
+
+    def getLinksCount(self):
+        return len(self.links)

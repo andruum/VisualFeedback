@@ -13,17 +13,35 @@ class VisualTracking:
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
         self.aruco_params = aruco.DetectorParameters_create()
 
-    def senseScene(self, image, cam_translation, cam_rotation, cam_matrix, cam_distortion):
+
+
+    def senseScene(self, image, cam_translation, cam_rotation, cam_matrix, cam_distortion, timestamp):
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, self.aruco_dict, parameters=self.aruco_params)
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
+                                                              self.aruco_dict,
+                                                              parameters=self.aruco_params)
 
-        frame_markers = aruco.drawDetectedMarkers(image.copy(), corners, ids)
+        rvecs, tvecs, trash = aruco.estimatePoseSingleMarkers(corners,
+                                                              Marker.MARKER_SIZE,
+                                                              cam_matrix,
+                                                              cam_distortion)
 
-        #rvecs, tvecs, trash = aruco.estimatePoseSingleMarkers(corners, Marker.MARKER_SIZE, cam_matrix, cam_distortion)
 
-        plt.figure()
-        plt.imshow(frame_markers)
-        plt.show()
+
+        origins = {k: [] for k in range(self.robot.getLinksCount())}
+
+        for (id, rvec, tvec) in zip(ids,rvecs, tvecs):
+            marker, link = self.robot.getMarker(id)
+            if marker is not None:
+                rmat = cv.Rodrigues(rvec)
+                marker_rot = cam_rotation*rmat
+                marker_tvec = cam_rotation*tvec+cam_translation
+
+
+                #TODO calculate position of link origin in world frame
+
+
+
 
     def getPartsPosition(self):
         return {}

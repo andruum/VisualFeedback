@@ -25,7 +25,9 @@ while True:
         break
     elif k%256 == 32:
         # SPACE pressed
-        img_name = "{}/{}.png".format(final_path,img_counter)
+        img_counter_str = str(img_counter)
+        img_counter_str = img_counter_str.zfill(2)
+        img_name = "{}/{}.png".format(final_path,img_counter_str)
         cv2.imwrite(img_name, frame)
         print("{} written!".format(img_name))
         img_counter += 1

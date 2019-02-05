@@ -1,26 +1,25 @@
+from camera.camera_position_estimator import CameraPostionEstimator
 from visual_tracking import VisualTracking
-from camera import *
+from camera.camera import *
 from robot_configuration import *
 
 
 # Markers for position estimation
-marker_origin1 = Marker(1,None,None)
-marker_origin2 = Marker(2,None,None)
-marker_origin3 = Marker(3,None,None)
-marker_origin4 = Marker(4,None,None)
+marker_origin1 = Marker(2,None,None)
 
 
+cam_pose_estimator = CameraPostionEstimator()
+cam_pose_estimator.addMarker(marker_origin1)
 
-cam = UsbCamera()
-cam.addPositionMarker(marker_origin1)
-cam.addPositionMarker(marker_origin2)
-cam.addPositionMarker(marker_origin3)
-cam.addPositionMarker(marker_origin4)
 
-visualtrack = VisualTracking(None)
+cam = UsbCamera(0,'WebCam')
+
+# visualtrack = VisualTracking(None)
 
 while True:
-    image = cam.getImage()
-    translation,rotation = cam.getPosition()
-    cammatrix, cam_dist = cam.getIntrinsics()
-    visualtrack.senseScene(image,translation,rotation,cammatrix,cam_dist)
+    image,timestamp = cam.getImage()
+    translation,rotation = cam_pose_estimator.estimatePosition(cam)
+    if translation is not None:
+        print(translation[2])
+    # cammatrix, cam_dist = cam.getIntrinsics()
+    # visualtrack.senseScene(image,translation,rotation,cammatrix,cam_dist,timestamp)
