@@ -13,8 +13,8 @@ class CameraPostionEstimator:
     def addMarker(self, marker):
         self.markers.append(marker)
 
-    def estimatePosition(self, camera):
-        image, _ = camera.getImage()
+    def estimatePosition(self, image, cam_matrix, cam_distortion):
+        # image, _ = camera.getImage()
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
         corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
@@ -22,7 +22,7 @@ class CameraPostionEstimator:
                                                               parameters=self.aruco_params)
 
 
-        cam_matrix,cam_distortion = camera.getIntrinsics()
+        # cam_matrix,cam_distortion = camera.getIntrinsics()
 
         rvecs, tvecs, trash = aruco.estimatePoseSingleMarkers(corners,
                                                               Marker.MARKER_SIZE,

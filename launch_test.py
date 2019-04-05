@@ -18,8 +18,9 @@ cam = UsbCamera(0,'WebCam')
 
 while True:
     image,timestamp = cam.getImage()
-    translation,rotation = cam_pose_estimator.estimatePosition(cam)
+    cammatrix, cam_dist = cam.getIntrinsics()
+    translation,rotation = cam_pose_estimator.estimatePosition(image,cammatrix,cam_dist)
     if translation is not None:
         print(translation[2])
-    # cammatrix, cam_dist = cam.getIntrinsics()
     # visualtrack.senseScene(image,translation,rotation,cammatrix,cam_dist,timestamp)
+

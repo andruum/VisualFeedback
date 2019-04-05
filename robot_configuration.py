@@ -4,10 +4,10 @@ class Marker:
 
     MARKER_SIZE = 0.045
 
-    def __init__(self, id, origin_rotation, origin_translation):
+    def __init__(self, id, rot, trans):
         self.id = id
-        self.origin_rotation = origin_rotation
-        self.origin_translation = origin_translation
+        self.rotation = rot
+        self.translation = trans
 
 
 class Robot:
@@ -20,8 +20,12 @@ class Robot:
     def addMarker(self,linkid, marker):
         self.markers[linkid].append(marker)
 
-    def setBasePosition(self,x,y,z):
-        self.base_pos = [x,y,z]
+    def setBasePosition(self, base_rotation, base_translation):
+        self.base_rotation = base_rotation
+        self.base_translation = base_translation
+
+    def getBasePosition(self):
+        return self.base_rotation, self.base_translation
 
     def addLink(self, link_id, transform_matrix):
         self.links[link_id] = transform_matrix
