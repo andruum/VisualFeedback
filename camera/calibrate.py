@@ -2,11 +2,11 @@ import numpy as np
 import cv2
 import glob
 
-square_size = 25
-camera_name = "WebCam"
+square_size = 20
+camera_name = "TECNO"
 # Define the chess board rows and columns
 rows = 9
-cols = 6
+cols = 7
 
 # Set the termination criteria for the corner sub-pixel algorithm
 criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.001)
@@ -21,7 +21,7 @@ objectPointsArray = []
 imgPointsArray = []
 
 # Loop over the image files
-for path in glob.glob('./configs/{}/config_images/[0-1][0-9].png'.format(camera_name)):
+for path in glob.glob('./configs/{}/config_images/[0-1][0-9].*'.format(camera_name)):
     # Load the image and convert it to gray scale
     img = cv2.imread(path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -42,8 +42,9 @@ for path in glob.glob('./configs/{}/config_images/[0-1][0-9].png'.format(camera_
         cv2.drawChessboardCorners(img, (rows, cols), corners, ret)
 
     # Display the image
-    cv2.imshow('chess board', img)
-    cv2.waitKey(50)
+    # rimg = cv2.resize(img,(500,700))
+    # cv2.imshow('chess board', rimg)
+    # cv2.waitKey(50)
 
 # Calibrate the camera and save the results
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objectPointsArray, imgPointsArray, gray.shape[::-1], None, None)

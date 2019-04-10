@@ -33,7 +33,22 @@ class UsbCamera(Camera):
 
 
 class FromImage(Camera):
-    pass
+
+    def __init__(self, image_path, camera_name):
+        Camera.__init__(self,camera_name)
+        self.image = cv.imread(image_path)
+
+    def getImage(self):
+        ts = time.time()
+        return self.image,ts
 
 class FromVideo(Camera):
-    pass
+
+    def __init__(self,video_path, camera_name):
+        Camera.__init__(self,camera_name)
+        self.cap = cv.VideoCapture(video_path)
+
+    def getImage(self):
+        ret, frame = self.cap.read()
+        ts = time.time()
+        return frame,ts

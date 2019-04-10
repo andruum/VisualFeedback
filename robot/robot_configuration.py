@@ -27,8 +27,11 @@ class Robot:
     def getBasePosition(self):
         return self.base_rotation, self.base_translation
 
-    def addLink(self, link_id, transform_matrix):
-        self.links[link_id] = transform_matrix
+    def addLink(self, link_id, d, a, alpha):
+        self.links[link_id] = (d,a,alpha)
+
+    def getLink(self,link_id):
+        return self.links[link_id]
 
     def getMarker(self, id):
         for (link, marker) in self.markers.items():

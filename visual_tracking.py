@@ -1,9 +1,7 @@
 import cv2 as cv
 from cv2 import aruco
-import matplotlib.pyplot as plt
-import numpy as np
 
-from robot_configuration import Marker
+from robot.robot_configuration import Marker
 
 
 class VisualTracking:

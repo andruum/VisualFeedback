@@ -1,6 +1,6 @@
 import cv2 as cv
 from cv2 import aruco
-from robot_configuration import Marker
+from robot.robot_configuration import Marker
 import numpy as np
 
 class CameraPostionEstimator:
@@ -19,6 +19,8 @@ class CameraPostionEstimator:
 
         corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
                                                               self.aruco_dict,
+                                                              cameraMatrix=cam_matrix,
+                                                              distCoeff=cam_distortion,
                                                               parameters=self.aruco_params)
 
 

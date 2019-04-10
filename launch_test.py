@@ -1,7 +1,6 @@
 from camera.camera_position_estimator import CameraPostionEstimator
-from visual_tracking import VisualTracking
 from camera.camera import *
-from robot_configuration import *
+from robot.robot_configuration import *
 
 
 # Markers for position estimation
