@@ -3,6 +3,8 @@ from cv2 import aruco
 
 from robot.robot_configuration import Marker
 
+import numpy as np
+
 
 class VisualTracking:
 
@@ -28,12 +30,16 @@ class VisualTracking:
         for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
             marker, linkid = self.robot.getMarker(id)
             if marker is not None:
-                rmat = cv.Rodrigues(rvec)
-                marker_rot = cam_rotation * rmat
-                marker_tvec = cam_rotation * tvec + cam_translation
+                rmat, _ = cv.Rodrigues(rvec)
+                marker_rot = np.matmul(cam_rotation,rmat)
+                tvec = tvec.reshape((-1, 1))
+                marker_tvec = np.matmul(cam_rotation,tvec) + cam_translation
 
-                link_rot = marker_rot * marker.rotation
-                link_tvec = marker_rot * marker.translation + marker_tvec
+                marker_rot_link = np.transpose(marker.rotation)
+                link_rot = np.matmul(marker_rot,marker_rot_link)
+
+                link_tvec = -np.matmul(link_rot,marker.translation)
+                link_tvec = link_tvec + marker_tvec
 
                 origins[linkid] = (link_rot, link_tvec)
 

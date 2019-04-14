@@ -1,5 +1,6 @@
 from scipy.optimize import minimize
-from numpy import *
+import numpy as np
+from numpy import cos,sin
 import math
 
 
@@ -13,7 +14,8 @@ def getTransformMatrix(q, d, a, al):
 
 def fromRTtoTrans(R,t):
     tr = np.concatenate((R, t), axis=1)
-    tr = np.concatenate((tr, [0, 0, 0, 1]), axis=0)
+    zeros = np.asarray([[0, 0, 0, 1]])
+    tr = np.concatenate((tr,zeros), axis=0)
     return tr
 
 def minimize_error_all(q,*args):
@@ -26,8 +28,10 @@ def minimize_error_all(q,*args):
     error = 0
     for i,qi in enumerate(q):
         d, a, al = configuration.getLink(i)
-        tr_part = fromRTtoTrans(parts(i))
-        error += tr_part -tr_base*getTransformMatrix(qi,d,a,al)
+
+        tr_part = fromRTtoTrans(parts[i][0],parts[i][1])
+        error_mat =  abs(np.matmul(tr_base,getTransformMatrix(qi,d,a,al)) - tr_part)
+        error += np.mean(error_mat)
 
     return error
 
@@ -38,13 +42,24 @@ class Estimator:
         self.robot_configuration = robot_configuration
 
     def senseParts(self,parts):
-        q0 = np.array(0, 0)
+        qinit = []
+        for i,RT in parts.items():
+            if len(RT) == 0:
+                break
+            else:
+                qinit.append(0.0)
 
-        cons = ({'type': 'ineq', 'fun': lambda q: math.pi/2 - abs(q[0]) },
-                {'type': 'ineq', 'fun': lambda q: math.pi/2 - abs(q[1]) })
+        if len(qinit)==0:
+            return []
+        q0 = np.asarray(qinit)
 
+        #
+        # cons = ({'type': 'ineq', 'fun': lambda q: math.pi / 2 - abs(q[0])},
+                #         {'type': 'ineq', 'fun': lambda q: math.pi/2 - abs(q[1]) })
+
+        cons = ({'type': 'ineq', 'fun': lambda q: math.pi / 2 - abs(q[0])})
         res = minimize(minimize_error_all, q0, args=(parts,self.robot_configuration),
                        method='COBYLA',
                        tol=1e-6,
-                       constraints=cons)
-        return res
+                       constraints = cons)
+        return res.x
