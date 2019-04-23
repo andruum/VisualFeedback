@@ -11,8 +11,9 @@ class CameraPostionEstimator:
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
         self.aruco_params = aruco.DetectorParameters_create()
 
-    def addMarker(self, marker):
-        self.markers.append(marker)
+    def addMarker(self, *markers):
+        for marker in markers:
+            self.markers.append(marker)
 
     def estimatePosition(self, image, cam_matrix, cam_distortion):
         # image, _ = camera.getImage()
@@ -57,7 +58,7 @@ class CameraPostionEstimator:
                     # break
                     camera_tvec_res.append(camera_tvec)
                     camera_rmat_res.append(camera_rmat)
-                    #TODO calculate pose from several markers
+                    #TODO calculate pose from several markers Kalman filter
 
         # if len(camera_tvec_res) > 1:
         #     error = camera_tvec_res[0][1]-camera_tvec_res[1][1]

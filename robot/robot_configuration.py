@@ -19,10 +19,10 @@ def fromRPYtoRmat(roll,pitch,yaw):
     return np.matmul(np.matmul(Rz,Ry),Rx)
 
 
-def fromZYZtoRmat(Z1,Y,Z2):
-    Z1 = radians(Z1)
-    Y = radians(Y)
-    Z2 = radians(Z2)
+def fromZYZtoRmat(ZYZ):
+    Z1 = radians(ZYZ[0])
+    Y = radians(ZYZ[1])
+    Z2 = radians(ZYZ[2])
     Rz1 = np.asarray([[cos(Z1), -sin(Z1), 0],
                      [sin(Z1), cos(Z1), 0],
                      [0, 0, 1]]);
@@ -38,48 +38,56 @@ class Marker:
 
     MARKER_SIZE = 0.045
 
-    def __init__(self, id, rot, trans, roll=None,pitch=None,yaw=None):
+    def __init__(self, id, trans, ZYZrot):
         self.id = id
-        if roll is not None:
-            self.rotation = fromRPYtoRmat(roll,
-                                          pitch,
-                                          yaw)
-        else:
-            self.rotation = rot
+        self.rotation = fromZYZtoRmat(ZYZrot)
         self.translation = np.asarray(trans)
         self.translation = self.translation.reshape((-1,1))
-
-
+        self.ZYZ = ZYZrot
 
 class Robot:
 
-    def __init__(self, num_links):
-        self.markers = {k: [] for k in range(num_links)}
+    def __init__(self, robot_name = None):
         self.links = {}
+        self.robot_name = robot_name
+        self.baseZYZ = None
+        self.base_rotation = None
+        self.base_translation = None
 
+    def addMarker(self, linkid, marker):
+        if linkid not in self.links:
+            self.links[linkid] = {}
+            self.links[linkid]['markers'] = []
+        self.links[linkid]['markers'].append(marker)
 
-    def addMarker(self,linkid, marker):
-        self.markers[linkid].append(marker)
+    def setBaseRotation(self,ZYZ):
+        self.baseZYZ = ZYZ
+        self.base_rotation = fromZYZtoRmat(ZYZ)
 
-    def setBasePosition(self, base_rotation, base_translation):
-        self.base_rotation = base_rotation
-        self.base_translation = base_translation
-        self.base_translation = self.base_translation.reshape((-1,1))
+    def setBasePosition(self,base_translation):
+        self.base_translation = np.asarray(base_translation)
+        self.base_translation = self.base_translation.reshape((-1, 1))
 
-    def getBasePosition(self):
+    def getBaseTransform(self):
         return self.base_rotation, self.base_translation
 
     def addLink(self, link_id, d, a, alpha):
-        self.links[link_id] = (d,a,radians(alpha))
+        if link_id not in self.links:
+            self.links[link_id] = {}
+            self.links[link_id]['markers'] = []
+        self.links[link_id]['d'] = d
+        self.links[link_id]['a'] = a
+        self.links[link_id]['alpha'] = radians(alpha)
+        # self.links[link_id] = (d,a,radians(alpha))
 
-    def getLink(self,link_id):
-        return self.links[link_id]
+    def getLinkParams(self,link_id):
+        return self.links[link_id]['d'],self.links[link_id]['a'],self.links[link_id]['alpha']
 
     def getMarker(self, id):
-        for (link, markers) in self.markers.items():
-            for marker in markers:
+        for link_id in self.links.keys():
+            for marker in self.links[link_id]['markers']:
                 if id == marker.id:
-                    return marker, link
+                    return marker, link_id
         return None,None
 
     def getLinksCount(self):

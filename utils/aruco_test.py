@@ -2,15 +2,20 @@ from camera.camera import UsbCamera,FromImage
 import cv2 as cv
 from cv2 import aruco
 
-cam = UsbCamera(0,'WebCam')
-# cam = FromImage("../camera/configs/TECNO/ex4.jpg",'TECNO')
+# cam = UsbCamera(0,'WebCam')
+cam = FromImage("../camera/configs/TECNO/ex1.jpg",'TECNO')
 cam_matrix,cam_distortion = cam.getIntrinsics()
 
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
 aruco_params = aruco.DetectorParameters_create()
 
+import time
+
+
+
 while True:
+    start = time.time()
     image,timestamp = cam.getImage()
 
     # image = cv.resize(image, (800,600))
@@ -26,3 +31,6 @@ while True:
     frame_markers = cv.resize(frame_markers, (800, 600))
     cv.imshow("aruco:",frame_markers)
     cv.waitKey(50)
+
+    end = time.time()
+    print(end - start)

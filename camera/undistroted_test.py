@@ -1,16 +1,17 @@
 import cv2 as cv
 from cv2 import aruco
+from camera import *
 
-from camera import UsbCamera
-
-cam = UsbCamera(0,'WebCam')
+cam = FromVideo("20190419145234793378.avi",'WebCam')
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
 aruco_params = aruco.DetectorParameters_create()
 
 while True:
-    image,timestamp = cam.getImage()
-
+    try:
+        image,timestamp = cam.getImage()
+    except:
+        break
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
     mtx, dist = cam.getIntrinsics()
