@@ -2,12 +2,12 @@ from camera.camera import UsbCamera,FromImage
 import cv2 as cv
 from cv2 import aruco
 
-# cam = UsbCamera(0,'WebCam')
-cam = FromImage("../camera/configs/TECNO/ex1.jpg",'TECNO')
+cam = UsbCamera(0,'WebCam')
+# cam = FromImage("../camera/configs/TECNO/ex1.jpg",'TECNO')
 cam_matrix,cam_distortion = cam.getIntrinsics()
 
 
-aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
 aruco_params = aruco.DetectorParameters_create()
 
 import time
