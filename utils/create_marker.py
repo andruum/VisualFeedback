@@ -8,15 +8,20 @@ import pandas as pd
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
 
-fig = plt.figure()
+
 nx = 4
 ny = 3
-for i in range(1, nx*ny+1):
-    ax = fig.add_subplot(ny,nx, i)
-    img = aruco.drawMarker(aruco_dict,i, 700)
-    plt.imshow(img, cmap = mpl.cm.gray, interpolation = "nearest")
-    ax.axis("off")
+pages = 2
 
-plt.savefig("../_data/markers2.pdf")
-plt.show()
+file_name = "markers_4_4_50_"
+
+for p in range(pages):
+    fig = plt.figure()
+    for i in range(1, nx*ny+1):
+        ax = fig.add_subplot(ny,nx, i)
+        img = aruco.drawMarker(aruco_dict, i+p*nx*ny, 700*2)
+        plt.imshow(img, cmap = mpl.cm.gray, interpolation = "nearest")
+        ax.axis("off")
+    plt.savefig("../_data/"+str(file_name)+str(p)+".pdf")
+    plt.clf()
 

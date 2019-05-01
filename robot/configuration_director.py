@@ -13,9 +13,9 @@ class ConfigurationDirector():
         pathcfg = os.path.join(os.path.dirname(__file__),
                                ConfigurationDirector.CFG_FOLDER,
                                name_of_config+'.json')
-        cfg = open(pathcfg,"r")
-        jsonstr = cfg.read()
-        cfg.close()
+        with open(pathcfg,"r") as cfg:
+            jsonstr = cfg.read()
+
         config = json.loads(jsonstr)
         self.markers_origin = []
         for marker_dict in config['markers']:
@@ -106,9 +106,8 @@ class ConfigurationDirector():
             cfg_dict['robots'].append(robot_dict)
 
         jsonstr = json.dumps(cfg_dict, indent=4)
-        f = open(pathcfg,'w')
-        f.write(jsonstr)
-        f.close()
+        with open(pathcfg,'w') as f:
+            f.write(jsonstr)
 
 
 if __name__ == '__main__':

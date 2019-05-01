@@ -10,7 +10,7 @@ if __name__ == '__main__':
     cam = UsbCamera(0,'WebCam')
     # cam = FromImage("./camera/configs/TECNO/ex4.jpg",'TECNO')
 
-    conf_dir = ConfigurationDirector('test')
+    conf_dir = ConfigurationDirector('test2')
 
     visualtrack = VisualTracking(conf_dir)
     visualtrack.addCamera(cam)
@@ -20,11 +20,19 @@ if __name__ == '__main__':
 
     maxtime = 0
     first_step = True
+
+
     time_debug = True
 
     while True:
         start = time.time()
         visualtrack.sense(robot_state,debug=True)
+
+
+        # campos,_ = cam.getPosition()
+        # if campos is not None:
+        #     print(campos[2])
+
         estimator.sense(robot_state)
 
         for i, q in enumerate(robot_state.configuration_estimation):
