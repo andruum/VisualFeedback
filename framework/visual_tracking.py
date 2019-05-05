@@ -1,14 +1,155 @@
 import cv2 as cv
 from cv2 import aruco
+from math import atan2
+from transforms3d.euler import mat2euler, euler2mat
 
 from robot.robot_configuration import Marker
-
 import numpy as np
-
-from filterpy.kalman import KalmanFilter
-
+from filterpy.kalman import KalmanFilter, UnscentedKalmanFilter, MerweScaledSigmaPoints
 from filterpy.common import Q_discrete_white_noise
 from pyquaternion import Quaternion
+
+from utils.utils import *
+
+def getMeasurementVector(Tr):
+    Rmat = Tr[0:3, 0:3]
+    t = Tr[0:3, 3]
+    euler = mat2euler(Rmat)
+    return [t[0], t[1], t[2], euler[0], euler[1], euler[2]]
+
+def Hx(x, markers):
+    camera_tvec = np.array(x[0:3])
+    camera_tvec = camera_tvec.reshape((-1, 1))
+    camera_rmat = euler2mat(*x[3:6])
+    T_w_c = fromRTtoTrans(camera_rmat,camera_tvec)
+    T_c_w = inverseTransform(T_w_c)
+
+    Z = []
+    for m in markers:
+        T_w_m = fromRTtoTrans(m.rotation,m.translation)
+        T_c_m = np.matmul(T_c_w,T_w_m)
+        Z.extend(getMeasurementVector(T_c_m))
+    return Z
+
+def residual_h(a, b):
+    y = a - b
+    for i in range(3, len(y), 6):
+        y[i] = normalize_angle(y[i])
+        y[i+1] = normalize_angle(y[i+1])
+        y[i+2] = normalize_angle(y[i+2])
+    return y
+
+def fx(x,dt):
+    return x
+
+def residual_x(a, b):
+    y = a - b
+    y[3] = normalize_angle(y[3])
+    y[4] = normalize_angle(y[4])
+    y[5] = normalize_angle(y[5])
+    return y
+
+def state_mean(sigmas, Wm):
+    x = np.zeros(6)
+
+    x[0] = np.sum(np.dot(sigmas[:, 0], Wm))
+    x[1] = np.sum(np.dot(sigmas[:, 1], Wm))
+    x[2] = np.sum(np.dot(sigmas[:, 2], Wm))
+
+    sum_sin = np.sum(np.dot(np.sin(sigmas[:, 3]), Wm))
+    sum_cos = np.sum(np.dot(np.cos(sigmas[:, 3]), Wm))
+    x[3] = atan2(sum_sin, sum_cos)
+    sum_sin = np.sum(np.dot(np.sin(sigmas[:, 4]), Wm))
+    sum_cos = np.sum(np.dot(np.cos(sigmas[:, 4]), Wm))
+    x[4] = atan2(sum_sin, sum_cos)
+    sum_sin = np.sum(np.dot(np.sin(sigmas[:, 5]), Wm))
+    sum_cos = np.sum(np.dot(np.cos(sigmas[:, 5]), Wm))
+    x[5] = atan2(sum_sin, sum_cos)
+
+    return x
+
+def z_mean(sigmas, Wm):
+    z_count = sigmas.shape[1]
+    x = np.zeros(z_count)
+    for z in range(0, z_count, 6):
+        x[z] = np.sum(np.dot(sigmas[:,z], Wm))
+        x[z+1] = np.sum(np.dot(sigmas[:,z+1], Wm))
+        x[z+2] = np.sum(np.dot(sigmas[:,z+2], Wm))
+
+        sum_sin = np.sum(np.dot(np.sin(sigmas[:, 3]), Wm))
+        sum_cos = np.sum(np.dot(np.cos(sigmas[:, 3]), Wm))
+        x[z+3] = atan2(sum_sin, sum_cos)
+        sum_sin = np.sum(np.dot(np.sin(sigmas[:, 4]), Wm))
+        sum_cos = np.sum(np.dot(np.cos(sigmas[:, 4]), Wm))
+        x[z+4] = atan2(sum_sin, sum_cos)
+        sum_sin = np.sum(np.dot(np.sin(sigmas[:, 5]), Wm))
+        sum_cos = np.sum(np.dot(np.cos(sigmas[:, 5]), Wm))
+        x[z+5] = atan2(sum_sin, sum_cos)
+    return x
+
+def createKalmanfilterCam(camera):
+    points = MerweScaledSigmaPoints(n=6, alpha=.00001, beta=2, kappa=0,
+                                    subtract=residual_x)
+
+    f = UnscentedKalmanFilter(dim_x=6, dim_z=6, dt=1,hx=Hx,
+                              points=points,fx=fx,x_mean_fn=state_mean,
+                              z_mean_fn=z_mean,residual_x=residual_x,
+                              residual_z=residual_h)
+
+    f.x = np.array([0,0,0,0,0,0])
+    f.P *= 0.100 ** 2
+
+    f.R[0, 0] = 0.02 ** 2
+    f.R[1, 1] = 0.02 ** 2
+    f.R[2, 2] = 0.02 ** 2
+    f.R[3, 3] = 0.02 ** 2
+    f.R[4, 4] = 0.02 ** 2
+    f.R[5, 5] = 0.02 ** 2
+
+    f.Q *= 0.000333 ** 2
+    return f
+
+def estimateCamPosition(cam, filter, observations):
+    if len(observations) == 0:
+        campos, camrot = cam.getPosition()
+        if campos is not None and camrot is not None:
+            filter.predict()
+        else: return
+
+    for (marker, rvec, tvec) in observations:
+
+        rmat, _ = cv.Rodrigues(rvec)
+        # camera_rmat = np.transpose(rmat)
+        tvec = tvec.reshape((-1, 1))
+        # camera_tvec = -np.matmul(camera_rmat, tvec)
+
+        # camera_rmat = np.matmul(marker.rotation, camera_rmat)
+        # camera_tvec = np.matmul(marker.rotation, camera_tvec) + marker.translation.reshape((-1, 1))
+
+        # euler = rotationMatrixToEulerAngles(camera_rmat)
+
+        euler = mat2euler(rmat)
+
+        # quat = Quaternion(matrix=camera_rmat)
+
+        z = np.asarray([tvec[0],
+                        tvec[1],
+                        tvec[2],
+                        euler[0],
+                        euler[1],
+                        euler[2]] )
+
+        # campos,camrot = cam.getPosition()
+        # if campos is None or camrot is None:
+        #     filter.x = z
+        #     continue
+
+        filter.predict()
+        filter.update(z, markers=[marker])
+
+    camera_tvec = filter.x[0:3]
+    camera_rmat = euler2mat(*filter.x[3:6])
+    cam.setPosition(camera_tvec, camera_rmat)
 
 
 class VisualTracking:
@@ -19,57 +160,17 @@ class VisualTracking:
         self.aruco_params = aruco.DetectorParameters_create()
         self.cameras = []
         self.camera_filters = []
+        self.observationsz = None
+
+
 
     def addCamera(self, *cameras):
         for cam in cameras:
             self.cameras.append(cam)
-            f = KalmanFilter(dim_x=7, dim_z=7)
-            f.x = np.zeros((7, 1))
-            f.F = np.eye(7)
-            f.H = np.eye(7)
-            f.P *= 1.
-            f.R *= 1
-            f.Q *= 0.05
+            f = createKalmanfilterCam(cam)
             self.camera_filters.append(f)
 
-    def estimateCamPosition(self, cam, filter, observations):
-        if len(observations) == 0:
-            cam.setPosition(None, None)
-            return
 
-        for (marker, rvec, tvec) in observations:
-
-            rmat, _ = cv.Rodrigues(rvec)
-            camera_rmat = np.transpose(rmat)
-            tvec = tvec.reshape((-1, 1))
-            camera_tvec = -np.matmul(camera_rmat, tvec)
-
-            camera_rmat = np.matmul(marker.rotation, camera_rmat)
-            camera_tvec = np.matmul(marker.rotation, camera_tvec) + marker.translation.reshape((-1, 1))
-
-            quat = Quaternion(matrix=camera_rmat)
-
-            z = np.asarray([camera_tvec[0],
-                            camera_tvec[1],
-                            camera_tvec[2],
-                            quat.x,
-                            quat.y,
-                            quat.z,
-                            quat.w])
-
-            campos,camrot = cam.getPosition()
-            if campos is None or camrot is None:
-                filter.x = z
-                continue
-
-            filter.predict()
-            filter.update(z)
-
-        camera_tvec = filter.x[0:3]
-        camera_quat_filtered = Quaternion(w=filter.x[6], x=filter.x[3], y=filter.x[4], z=filter.x[5])
-        camera_rmat = camera_quat_filtered.rotation_matrix
-
-        cam.setPosition(camera_tvec, camera_rmat)
 
     def sense(self, robot_state, debug=False):
 
@@ -95,7 +196,7 @@ class VisualTracking:
                 cv.waitKey(50)
 
             if ids is None:
-                break
+                continue
 
             origin_markers = []
             for marker in self.configuration_director.markers_origin:
@@ -108,70 +209,82 @@ class VisualTracking:
                         np.delete(tvecs, np.argwhere(tvecs == tvec))
                         break
 
-            self.estimateCamPosition(cam, filter, origin_markers)
+            estimateCamPosition(cam, filter, origin_markers)
 
-            robot_state.markers_observations.append((timestamp, ids, rvecs, tvecs))
+            if ids is None:
+                continue
+            z = []
+            for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
+                if self.configuration_director.getRobotConf().isMarkerfromRobot(id):
+                    z.append((id,rvec,tvec))
+
+            robot_state.markers_observations.append((timestamp, cam, z))
 
         # do something with observations
 
         # origins = {k: [] for k in range(self.configuration_director.getRobotConf().getLinksCount())}
 
-        for (cam, obsv) in zip(self.cameras, robot_state.markers_observations):
 
-            (timestamp, ids, rvecs, tvecs) = obsv
-            cam_translation, cam_rotation = cam.getPosition()
 
-            if cam_translation is None or cam_rotation is None:
-                break
-
-            for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
-                marker, linkid = self.configuration_director.getRobotConf().getMarker(id)
-                if marker is not None:
-                    rmat, _ = cv.Rodrigues(rvec)
-                    marker_rot = np.matmul(cam_rotation, rmat)
-                    tvec = tvec.reshape((-1, 1))
-                    marker_tvec = np.matmul(cam_rotation, tvec) + cam_translation
-
-                    marker_rot_link = np.transpose(marker.rotation)
-                    link_rot = np.matmul(marker_rot, marker_rot_link)
-
-                    link_tvec = -np.matmul(link_rot, marker.translation)
-                    link_tvec = link_tvec + marker_tvec
-
-                    robot_state.axises_estimations[linkid] = (link_rot, link_tvec)
+        # for (cam, obsv) in zip(self.cameras, robot_state.markers_observations):
+        #
+        #     (timestamp, ids, rvecs, tvecs) = obsv
+        #
+        #     if ids is None:
+        #         break
+        #
+        #     cam_translation, cam_rotation = cam.getPosition()
+        #     if cam_translation is None or cam_rotation is None:
+        #         break
+        #
+        #     for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
+        #         marker, linkid = self.configuration_director.getRobotConf().getMarker(id)
+        #         if marker is not None:
+        #             rmat, _ = cv.Rodrigues(rvec)
+        #             marker_rot = np.matmul(cam_rotation, rmat)
+        #             tvec = tvec.reshape((-1, 1))
+        #             marker_tvec = np.matmul(cam_rotation, tvec) + cam_translation
+        #
+        #             marker_rot_link = np.transpose(marker.rotation)
+        #             link_rot = np.matmul(marker_rot, marker_rot_link)
+        #
+        #             link_tvec = -np.matmul(link_rot, marker.translation)
+        #             link_tvec = link_tvec + marker_tvec
+        #
+        #             robot_state.axises_estimations[linkid] = (link_rot, link_tvec)
 
                     # TODO Kalman filter for markers, after calculate axises
 
     ### Returns positions of links in 3D
-    def senseScene(self, image, cam_translation, cam_rotation, cam_matrix, cam_distortion, timestamp):
-        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
-                                                              self.aruco_dict,
-                                                              parameters=self.aruco_params)
-
-        rvecs, tvecs, trash = aruco.estimatePoseSingleMarkers(corners,
-                                                              Marker.MARKER_SIZE,
-                                                              cam_matrix,
-                                                              cam_distortion)
-
-        origins = {k: [] for k in range(self.robot.getLinksCount())}
-
-        for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
-            marker, linkid = self.robot.getMarker(id)
-            if marker is not None:
-                rmat, _ = cv.Rodrigues(rvec)
-                marker_rot = np.matmul(cam_rotation, rmat)
-                tvec = tvec.reshape((-1, 1))
-                marker_tvec = np.matmul(cam_rotation, tvec) + cam_translation
-
-                marker_rot_link = np.transpose(marker.rotation)
-                link_rot = np.matmul(marker_rot, marker_rot_link)
-
-                link_tvec = -np.matmul(link_rot, marker.translation)
-                link_tvec = link_tvec + marker_tvec
-
-                origins[linkid] = (link_rot, link_tvec)
-
-                # TODO Kalman filter
-
-        return origins
+    # def senseScene(self, image, cam_translation, cam_rotation, cam_matrix, cam_distortion, timestamp):
+    #     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    #     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
+    #                                                           self.aruco_dict,
+    #                                                           parameters=self.aruco_params)
+    #
+    #     rvecs, tvecs, trash = aruco.estimatePoseSingleMarkers(corners,
+    #                                                           Marker.MARKER_SIZE,
+    #                                                           cam_matrix,
+    #                                                           cam_distortion)
+    #
+    #     origins = {k: [] for k in range(self.robot.getLinksCount())}
+    #
+    #     for (id, rvec, tvec) in zip(ids, rvecs, tvecs):
+    #         marker, linkid = self.robot.getMarker(id)
+    #         if marker is not None:
+    #             rmat, _ = cv.Rodrigues(rvec)
+    #             marker_rot = np.matmul(cam_rotation, rmat)
+    #             tvec = tvec.reshape((-1, 1))
+    #             marker_tvec = np.matmul(cam_rotation, tvec) + cam_translation
+    #
+    #             marker_rot_link = np.transpose(marker.rotation)
+    #             link_rot = np.matmul(marker_rot, marker_rot_link)
+    #
+    #             link_tvec = -np.matmul(link_rot, marker.translation)
+    #             link_tvec = link_tvec + marker_tvec
+    #
+    #             origins[linkid] = (link_rot, link_tvec)
+    #
+    #             # TODO Kalman filter
+    #
+    #     return origins

@@ -2,19 +2,26 @@ import cv2
 import os
 from os import path
 
-camera_name = "WebCam"
+camera_name = "TecnoInf640"
 
 final_path = path.join("configs", camera_name, "config_images")
 if not os.path.isdir(final_path):
     os.makedirs (final_path)
 
-cam = cv2.VideoCapture(0)
+cam = cv2.VideoCapture("http://192.168.1.190:8080/video")
+
+# cam.set(cv2.CAP_PROP_FPS, 30)
+# cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
+# cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
+
 cv2.namedWindow("test")
 img_counter = 0
 
 while True:
     ret, frame = cam.read()
-    cv2.imshow("test", frame)
+    resized = cv2.resize(frame,(640,480))
+    cv2.imshow("test", resized)
+
     if not ret:
         break
     k = cv2.waitKey(1)

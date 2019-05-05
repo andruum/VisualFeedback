@@ -3,10 +3,10 @@ import cv2
 import glob
 from camera import FromImage
 
-square_size = 25
+square_size = 20
 # Define the chess board rows and columns
 rows = 9
-cols = 6
+cols = 7
 
 # Set the termination criteria for the corner sub-pixel algorithm
 criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.001)
@@ -21,7 +21,7 @@ objectPointsArray = []
 imgPointsArray = []
 
 
-camera = FromImage("./configs/WebCam/config_images","WebCam",False)
+camera = FromImage("./configs/Defender/config_images","Defender",cycle=False,load_configs=False)
 while True:
     try:
         img,_ = camera.getImage()
@@ -42,10 +42,11 @@ while True:
     # Display the image
     # rimg = cv2.resize(img,(500,700))
     # cv2.imshow('chess board', rimg)
-    # cv2.waitKey(50)
+    # cv2.waitKey(1000)
 
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objectPointsArray, imgPointsArray, gray.shape[::-1], None, None)
 
+camera.resolution = gray.shape[::-1]
 camera.setIntrinsics(mtx,dist)
 camera.dumpParams()
 

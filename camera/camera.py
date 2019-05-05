@@ -27,10 +27,11 @@ class Camera:
     CAMERAS_FOLDER = "./configs"
     CALIBRATION_FILE_NAME = "calibration.json"
 
-    def __init__(self, camera_name):
+    def __init__(self, camera_name, load_configs = True):
         self.camera_name = camera_name
         self.translation = None
         self.rotation = None
+        self.resolution = None
 
         path_to_calibration = os.path.join(os.path.dirname(__file__),
                                            Camera.CAMERAS_FOLDER,
@@ -38,12 +39,13 @@ class Camera:
                                            Camera.CALIBRATION_FILE_NAME)
 
         self.exists = os.path.isfile(path_to_calibration)
-        if self.exists:
+        if self.exists and load_configs:
             with open(path_to_calibration, 'r') as f:
                 jsonstr = f.read()
             config = json.loads(jsonstr)
             self.cam_matrix = np.asarray(config["cam_matrix"])
             self.cam_dist_mat = np.asarray(config["distortion"])
+            self.resolution = np.asarray(config["resolution"])
 
     def setPosition(self, translation, rotation):
         self.translation = translation
@@ -58,13 +60,15 @@ class Camera:
 
     def dumpParams(self):
         dict = {"cam_matrix": self.cam_matrix.tolist(),
-                "distortion": self.cam_dist_mat.tolist()}
-        jsonfile = json.dumps(dict)
+                "distortion": self.cam_dist_mat.tolist(),
+                "resolution": self.resolution}
+        jsonfile = json.dumps(dict,indent=4)
 
         path_to_calibration = os.path.join(os.path.dirname(__file__),
                                            Camera.CAMERAS_FOLDER,
                                            self.camera_name,
                                            Camera.CALIBRATION_FILE_NAME)
+
 
         with open(path_to_calibration, 'w') as f:
             f.write(jsonfile)
@@ -74,6 +78,9 @@ class Camera:
             raise Exception("Calibration file doesn't exist!")
         else:
             return self.cam_matrix, self.cam_dist_mat
+
+    def getResolution(self):
+        return self.resolution
 
     def getImage(self):
         pass
@@ -89,17 +96,18 @@ class Camera:
 
 class UsbCamera(Camera):
 
-    def __init__(self, device_id, camera_name, fps=30, resolution=(640, 480)):
+    def __init__(self, device_id, camera_name, fps=30):
         super().__init__(camera_name)
+
         self.cap = cv.VideoCapture(device_id)
+
         self.FPS = fps
-        self.resolution = resolution
+
         self.cap.set(cv.CAP_PROP_FPS, self.FPS)
         self.cap.set(cv.CAP_PROP_FRAME_WIDTH, self.resolution[0])
         self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+        self.cap.set(cv.CAP_PROP_BUFFERSIZE, 0)
 
-        self.frame_width = int(self.cap.get(cv.CAP_PROP_FRAME_WIDTH))
-        self.frame_height = int(self.cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
     def getImage(self):
         ret, frame = self.cap.read()
@@ -108,9 +116,6 @@ class UsbCamera(Camera):
 
     def release(self):
         self.cap.release()
-
-    def getWidthHeightFrame(self):
-        return self.frame_width, self.frame_height
 
     def recordVideo(self, length, name=None):
         if name is None:
@@ -126,7 +131,7 @@ class UsbCamera(Camera):
         out = cv.VideoWriter(path_to_save,
                              cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
                              self.FPS,
-                             self.getWidthHeightFrame())
+                             self.getResolution())
 
         starttime = time.time()
         while time.time() < starttime + length:
@@ -137,8 +142,8 @@ class UsbCamera(Camera):
 
 class FromImage(Camera):
 
-    def __init__(self, image_path, camera_name, cycle=False):
-        super().__init__(camera_name)
+    def __init__(self, image_path, camera_name, cycle=False, load_configs=True):
+        super().__init__(camera_name,load_configs=load_configs)
         isdir = os.path.isdir(image_path)
         if isdir:
             imgs = glob.glob(image_path + '/[0-1][0-9].*')
@@ -156,10 +161,11 @@ class FromImage(Camera):
 
 class FromVideo(Camera):
 
-    def __init__(self, video_path, camera_name):
+    def __init__(self, video_path, camera_name, fps = 30):
         super().__init__(camera_name)
         video_path = os.path.join(self.getCameraFolder(), video_path)
         self.cap = cv.VideoCapture(video_path)
+        self.cap.set(cv.CAP_PROP_FPS, fps)
 
     def getImage(self):
         ret, frame = self.cap.read()

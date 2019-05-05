@@ -4,16 +4,15 @@ from robot.robot_configuration import Marker, Robot
 
 
 class ConfigurationDirector():
-
     CFG_FOLDER = "./configs"
 
-    def __init__(self, name_of_config = None):
+    def __init__(self, name_of_config=None):
         if name_of_config is None:
             return
         pathcfg = os.path.join(os.path.dirname(__file__),
                                ConfigurationDirector.CFG_FOLDER,
-                               name_of_config+'.json')
-        with open(pathcfg,"r") as cfg:
+                               name_of_config + '.json')
+        with open(pathcfg, "r") as cfg:
             jsonstr = cfg.read()
 
         config = json.loads(jsonstr)
@@ -32,7 +31,7 @@ class ConfigurationDirector():
             robot_config.setBaseRotation(cfg_robot['base_ZYZ'])
 
             for link_cfg in cfg_robot['links']:
-                robot_config.addLink(link_cfg['id'],link_cfg['d'],
+                robot_config.addLink(link_cfg['id'], link_cfg['d'],
                                      link_cfg['a'], link_cfg['alpha'])
                 for marker_link_cfg in link_cfg['markers']:
                     marker_link = Marker(marker_link_cfg['id'],
@@ -42,10 +41,8 @@ class ConfigurationDirector():
 
             self.robots_conf.append(robot_config)
 
-
     def getRobotConf(self):
         return self.robots_conf[0]
-
 
     def create_example_config(self):
 
@@ -70,32 +67,32 @@ class ConfigurationDirector():
         self.robots_conf = []
         self.robots_conf.append(robot_conf)
 
-    def dump_configs(self,filename):
+    def dump_configs(self, filename):
         pathcfg = os.path.join(os.path.dirname(__file__),
-                                           ConfigurationDirector.CFG_FOLDER,
-                                           filename+'.json')
+                               ConfigurationDirector.CFG_FOLDER,
+                               filename + '.json')
         print(pathcfg)
         cfg_dict = {}
         cfg_dict['markers'] = []
         for m in self.markers_origin:
-            m_dict = {'id':m.id,
-                      'translation':m.translation.tolist(),
-                      'ZYZ':m.ZYZ}
+            m_dict = {'id': m.id,
+                      'translation': m.translation.tolist(),
+                      'ZYZ': m.ZYZ}
             cfg_dict['markers'].append(m_dict)
 
         cfg_dict['robots'] = []
         for robotcfg in self.robots_conf:
-            robot_dict = {'name':robotcfg.robot_name,
-                            'base_translation':robotcfg.getBaseTransform()[1].tolist(),
-                            'base_ZYZ':robotcfg.baseZYZ,
-                            'links':[]}
+            robot_dict = {'name': robotcfg.robot_name,
+                          'base_translation': robotcfg.getBaseTransform()[1].tolist(),
+                          'base_ZYZ': robotcfg.baseZYZ,
+                          'links': []}
 
-            for (link_id,link_cfg) in robotcfg.links.items():
-                link_dict = {'id':link_id,
-                             'markers':[],
-                             'd':link_cfg['d'],
-                             'a':link_cfg['a'],
-                             'alpha':link_cfg['alpha']}
+            for (link_id, link_cfg) in robotcfg.links.items():
+                link_dict = {'id': link_id,
+                             'markers': [],
+                             'd': link_cfg['d'],
+                             'a': link_cfg['a'],
+                             'alpha': link_cfg['alpha']}
                 for m in link_cfg['markers']:
                     m_dict = {'id': m.id,
                               'translation': m.translation.tolist(),
@@ -106,7 +103,7 @@ class ConfigurationDirector():
             cfg_dict['robots'].append(robot_dict)
 
         jsonstr = json.dumps(cfg_dict, indent=4)
-        with open(pathcfg,'w') as f:
+        with open(pathcfg, 'w') as f:
             f.write(jsonstr)
 
 

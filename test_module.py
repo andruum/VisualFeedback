@@ -7,10 +7,11 @@ from framework.visual_tracking import VisualTracking
 import time
 
 if __name__ == '__main__':
-    cam = UsbCamera(0,'WebCam')
+    # cam = UsbCamera("http://192.168.137.232:8080/video",'TecnoInf640')
+    cam = FromVideo("20190505214446309000.avi",'TecnoInf640')
     # cam = FromImage("./camera/configs/TECNO/ex4.jpg",'TECNO')
 
-    conf_dir = ConfigurationDirector('test2')
+    conf_dir = ConfigurationDirector('test_paper')
 
     visualtrack = VisualTracking(conf_dir)
     visualtrack.addCamera(cam)
@@ -22,16 +23,16 @@ if __name__ == '__main__':
     first_step = True
 
 
-    time_debug = True
+    time_debug = False
 
     while True:
         start = time.time()
         visualtrack.sense(robot_state,debug=True)
 
 
-        # campos,_ = cam.getPosition()
-        # if campos is not None:
-        #     print(campos[2])
+        campos,_ = cam.getPosition()
+        if campos is not None:
+            print(campos[2])
 
         estimator.sense(robot_state)
 
