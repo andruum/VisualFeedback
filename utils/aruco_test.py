@@ -1,9 +1,11 @@
-from camera.camera import UsbCamera,FromImage
+from camera.camera import UsbCamera, FromImage, FromVideo
 import cv2 as cv
 from cv2 import aruco
 
 # cam = UsbCamera(0,'WebCam')
-cam = UsbCamera(1,'Defender')
+# cam = UsbCamera(1,'Defender')
+# cam = UsbCamera("http://192.168.137.84:8080/video",'TecnoInf640')
+cam = FromVideo("20190506182557089688.avi",'TecnoInf640',15)
 # cam = FromImage("../camera/configs/TECNO/ex1.jpg",'TECNO')
 cam_matrix,cam_distortion = cam.getIntrinsics()
 
@@ -24,8 +26,8 @@ while True:
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     corners, ids, rejectedImgPoints = aruco.detectMarkers(gray,
                                                           aruco_dict,
-                                                          # cameraMatrix=cam_matrix,
-                                                          # distCoeff=cam_distortion,
+                                                          cameraMatrix=cam_matrix,
+                                                          distCoeff=cam_distortion,
                                                           parameters=aruco_params)
 
     frame_markers = aruco.drawDetectedMarkers(image.copy(), corners, ids)

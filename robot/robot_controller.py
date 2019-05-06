@@ -1,4 +1,5 @@
 import datetime
+import operator
 import socket
 import struct
 
@@ -10,7 +11,8 @@ from camera import UsbCamera
 
 class RobotController():
 
-    MSGLEN = 7*2
+    MSGLEN = 6*8
+    ORIGINS = [2.9496, 1.1345, -2.5482, 1.7890, 2.9234];
 
     def __init__(self,ip,port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,7 +20,7 @@ class RobotController():
 
     def sendPosition(self, q):
         controlbytes = 1.0
-        msg = struct.pack("<ddddddd",controlbytes,*q)
+        msg = struct.pack("<dddddd",controlbytes,*q)
 
         totalsent = 0
         while totalsent < RobotController.MSGLEN:
@@ -37,7 +39,8 @@ class RobotController():
             chunks.append(chunk)
             bytes_recd = bytes_recd + len(chunk)
         response = b''.join(chunks)
-        return struct.unpack("<ddddddd",response)[1:]
+        positions = struct.unpack("<dddddd",response)[1:]
+        return list(map(operator.sub,positions,RobotController.ORIGINS))
 
 
 def sinwavegenerator(amplitudes,freq,length_time):
@@ -49,20 +52,43 @@ def sinwavegenerator(amplitudes,freq,length_time):
             pos.append(a*math.sin(f*deltatime))
         yield pos
 
+def sinwavegenerator_single(amplitude,freq,length_time):
+    time_start = time.time()
+    while time.time()<time_start+length_time:
+        deltatime = time.time()-time_start
+        yield amplitude*math.sin(freq*deltatime)
+
 def test_connection():
-    rc = RobotController("192.168.1.1", 1000)
+    rc = RobotController("192.168.0.183", 51449)
     coords = rc.readPosition()
     print(coords)
 
 def test_command():
-    rc = RobotController("192.168.1.1", 1000)
-    coords = rc.sendPosition([0.0, 0.0, 0.0, 0.0, 0.0])
+    rc = RobotController("192.168.0.183", 51449)
+    rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
+    start_time = time.time()
+    while start_time+1.0 > time.time():
+        rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
+        coords = rc.readPosition()
+        print(coords)
+
+
+def experiment_sinsingle():
+    rc = RobotController("192.168.0.183", 51449)
+
+    time_length = 10.0
+    sin_wave = sinwavegenerator_single(0.5, 0.5 , time_length)
+    start_time = time.time()
+    while start_time + time_length > time.time():
+        rc.sendPosition([0.0, 0.0, 0.0, next(sin_wave), 0.0])
+        coords = rc.readPosition()
+        print(coords)
 
 def experiment_sinus():
-    # rc = RobotController("192.168.1.1",1000)
-    amplitudes = [5.0, 10.0, 15.0, 10.0, 5.0]
-    amplitudes = [math.radians(x) for x in amplitudes]
+    rc = RobotController("192.168.0.183", 51449)
+    amplitudes = [0.5, 0.5, 0.5, 0.5, 0.5]
     freq = [0.1, 0.1, 0.1, 0.1, 0.1]
+    time_length = 10.0
 
     file_name = str(datetime.datetime.now()) \
                     .replace(" ", "") \
@@ -70,17 +96,17 @@ def experiment_sinus():
                     .replace("-", "") \
                     .replace(":", "") + ".txt"
 
-    camera = UsbCamera(0,'WebCam',30)
-    camera.recordVideo(5.0)
+    camera = UsbCamera("http://192.168.137.84:8080/video", 'TecnoInf640', 15)
+    camera.recordVideo(60.0)
 
     with open(file_name, "a+") as log:
-        sin_waves = sinwavegenerator(amplitudes, freq, 5.0)
+        sin_waves = sinwavegenerator(amplitudes, freq, time_length)
         starttime = time.time()
-        while time.time() < starttime + 5.0:
-            # rc.sendPosition(next(sin_waves))
-            # coords = rc.readPosition()
-            coords = next(sin_waves)
+        while time.time() < starttime + time_length:
+            rc.sendPosition(next(sin_waves))
+            coords = rc.readPosition()
             log.write(str(coords))
+            log.write("\n")
 
 if __name__ == '__main__':
-    experiment_sinus()
+    experiment_sinsingle()

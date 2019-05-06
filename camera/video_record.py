@@ -4,7 +4,7 @@ import os
 from camera import UsbCamera
 
 # camera = UsbCamera(0,"WebCam")
-camera = UsbCamera("http://192.168.137.232:8080/video",'TecnoInf640')
+camera = UsbCamera("http://192.168.137.84:8080/video",'TecnoInf640')
 print(camera.getResolution())
 file_name = str(datetime.datetime.now()).replace(" ","").replace(".","").replace("-","").replace(":","")+".avi"
 path_to_save = os.path.join(camera.getCameraFolder(),file_name)
