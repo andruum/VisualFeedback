@@ -7,7 +7,7 @@ from framework.visual_tracking import VisualTracking
 import time
 
 if __name__ == '__main__':
-    cam = UsbCamera("http://192.168.137.64:8080/video",'TecnoInf640',15)
+    cam = UsbCamera("http://192.168.137.14:8080/video",'TecnoInf640',15)
     # cam = FromVideo("20190506182557089688.avi",'TecnoInf640',15)
     # cam = FromImage("./camera/configs/TECNO/ex4.jpg",'TECNO')
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     first_step = True
 
 
-    time_debug = False
+    time_debug = True
 
     while True:
         start = time.time()
