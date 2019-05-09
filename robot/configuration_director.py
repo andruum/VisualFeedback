@@ -32,7 +32,7 @@ class ConfigurationDirector():
 
             for link_cfg in cfg_robot['links']:
                 robot_config.addLink(link_cfg['id'], link_cfg['d'],
-                                     link_cfg['a'], link_cfg['alpha'])
+                                     link_cfg['a'], link_cfg['alpha'],link_cfg["offset_q"])
                 for marker_link_cfg in link_cfg['markers']:
                     marker_link = Marker(marker_link_cfg['id'],
                                          marker_link_cfg['translation'],
@@ -56,11 +56,11 @@ class ConfigurationDirector():
         robot_conf.setBasePosition([32 / 1000.0, 35 / 1000.0, 0.0])
         robot_conf.setBaseRotation([0.0, -90.0, 0.0])
 
-        robot_conf.addLink(0, 0.0, 0.0, 0.0)
+        robot_conf.addLink(0, 0.0, 0.0, 0.0, 0.0)
         marker_link0 = Marker(6, [105 / 1000.0, -4 / 1000.0, 0], [-95, 0, 0])
         robot_conf.addMarker(0, marker_link0)
 
-        robot_conf.addLink(1, 0.0, 190 / 1000.0, 0.0)
+        robot_conf.addLink(1, 0.0, 190 / 1000.0, 0.0, 0.0)
         marker_link1 = Marker(7, [90 / 1000.0, -7 / 1000.0, 0], [-180, 0, 0])
         robot_conf.addMarker(1, marker_link1)
 
@@ -92,6 +92,7 @@ class ConfigurationDirector():
                              'markers': [],
                              'd': link_cfg['d'],
                              'a': link_cfg['a'],
+                             'offset_q': link_cfg['offset_q'],
                              'alpha': link_cfg['alpha']}
                 for m in link_cfg['markers']:
                     m_dict = {'id': m.id,
@@ -108,6 +109,6 @@ class ConfigurationDirector():
 
 
 if __name__ == '__main__':
-    c = ConfigurationDirector('test')
+    c = ConfigurationDirector()
     c.create_example_config()
     c.dump_configs('test2')

@@ -71,17 +71,18 @@ class Robot:
     def getBaseTransform(self):
         return self.base_rotation, self.base_translation
 
-    def addLink(self, link_id, d, a, alpha):
+    def addLink(self, link_id, d, a, alpha, offset_q):
         if link_id not in self.links:
             self.links[link_id] = {}
             self.links[link_id]['markers'] = []
         self.links[link_id]['d'] = d
         self.links[link_id]['a'] = a
         self.links[link_id]['alpha'] = radians(alpha)
+        self.links[link_id]['offset_q'] = radians(offset_q)
         # self.links[link_id] = (d,a,radians(alpha))
 
     def getLinkParams(self,link_id):
-        return self.links[link_id]['d'],self.links[link_id]['a'],self.links[link_id]['alpha']
+        return self.links[link_id]['d'],self.links[link_id]['a'],self.links[link_id]['alpha'],self.links[link_id]['offset_q']
 
     def getMarker(self, id):
         for link_id in self.links.keys():

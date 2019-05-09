@@ -108,5 +108,29 @@ def experiment_sinus():
             log.write(str(coords))
             log.write("\n")
 
+def writeExampleLog():
+    file_name = str(datetime.datetime.now()) \
+                    .replace(" ", "") \
+                    .replace(".", "") \
+                    .replace("-", "") \
+                    .replace(":", "") + ".txt"
+
+    with open(file_name, "a+") as log:
+        time_length = 25.0
+        starttime = time.time()
+        amplitudes = [0.5, 0.5, 0.5, 0.5, 0.5]
+        freq = [0.5, 0.5, 0.5, 0.5, 0.5]
+        sin_waves = sinwavegenerator(amplitudes, freq, time_length)
+        log_step = 0.01
+        last_write = 0
+        while time.time() < starttime + time_length:
+            if time.time() > last_write+log_step:
+                last_write = time.time()
+                coords_with_time = next(sin_waves)
+                coords_with_time.append(last_write)
+                log.write(str(coords_with_time))
+                log.write("\n")
+
+
 if __name__ == '__main__':
-    experiment_sinsingle()
+    writeExampleLog()

@@ -196,6 +196,7 @@ class VisualTracking:
                 frame_markers = cv.resize(frame_markers, (800, 600))
                 cv.imshow("aruco:", frame_markers)
                 cv.waitKey(50)
+                cv.imwrite("example_markers.png",frame_markers)
 
             if ids is None:
                 continue

@@ -52,8 +52,8 @@ def configuration_error(q, *args):
     error = 0
 
     for i, qi in enumerate(q):
-        d, a, al = robot_configuration.getLinkParams(i)
-        T_pl_cl = getTransformMatrix(qi, d, a, al)
+        d, a, al, offset_q = robot_configuration.getLinkParams(i)
+        T_pl_cl = getTransformMatrix(qi+offset_q, d, a, al)
 
         T_w_l = np.matmul(T_w_l, T_pl_cl)
 
@@ -120,7 +120,7 @@ def estimate_configuration_minimization(robot_state, robot_conf):
     return res.x
 
 def getQ(dt, links):
-    Q_var = 0.01**2
+    Q_var = 0.005**2
     Q = Q_discrete_white_noise(dim=2, dt=dt, var=Q_var)
     Qfull = np.zeros((2*links,2*links))
     for i in range(links):
@@ -131,19 +131,32 @@ def getQ(dt, links):
     return Qfull
 
 def getF(dt, links):
-    return np.diag([[1., dt],[0., 1.]]*links)
+    Qfull = np.zeros((2 * links, 2 * links))
+    for i in range(links):
+        Qfull[i * 2, i * 2] = 1
+        Qfull[i * 2 + 1, i * 2] = 0
+        Qfull[i * 2, i * 2 + 1] = dt
+        Qfull[i * 2 + 1, i * 2 + 1] = 1
+    return Qfull
+
+def getH(links):
+    Qfull = np.zeros((links, 2 * links))
+    for i in range(links):
+        Qfull[i, i*2] = 1
+    return Qfull
 
 class Estimator:
 
     def __init__(self, configuration_director):
         self.configuration_director = configuration_director
 
-        self.kf = KalmanFilter(dim_x=2*configuration_director.getRobotConf().getLinksCount(), dim_z=configuration_director.getRobotConf().getLinksCount())
+        self.kf = KalmanFilter(dim_x=2*configuration_director.getRobotConf().getLinksCount(),
+                               dim_z=configuration_director.getRobotConf().getLinksCount())
 
-        self.kf.F = getF(0.1,configuration_director.getRobotConf().getLinksCount())
-        self.kf.Q = getQ(0.1, configuration_director.getRobotConf().getLinksCount())
-        self.kf.H = np.array([[1., 0.]*configuration_director.getRobotConf().getLinksCount()])
-        self.kf.R = np.diag([0.010 ** 2] * configuration_director.getRobotConf().getLinksCount())
+        self.kf.F = getF(0.05, configuration_director.getRobotConf().getLinksCount())
+        self.kf.Q = getQ(0.05, configuration_director.getRobotConf().getLinksCount())
+        self.kf.H = getH(configuration_director.getRobotConf().getLinksCount())
+        self.kf.R = np.diag([0.001 ** 2] * configuration_director.getRobotConf().getLinksCount())
 
         self.lastupdate = None
 
@@ -156,6 +169,7 @@ class Estimator:
                 return
             for i in range(len(q_m)):
                 self.kf.x[i*2] = q_m[i]
+            self.lastupdate = time.time()
         else:
             dt = time.time()-self.lastupdate
             self.lastupdate = time.time()
