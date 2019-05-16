@@ -73,6 +73,8 @@ def configuration_error(q, *args):
                         T_w_m = np.matmul(T_w_l, T_l_m)
 
                         t_w_c, R_w_c = cam.getPosition()
+                        if t_w_c is None or R_w_c is None:
+                            continue
                         t_w_c = t_w_c.reshape((-1, 1))
 
                         T_w_c = fromRTtoTrans(R_w_c, t_w_c)
@@ -83,8 +85,8 @@ def configuration_error(q, *args):
                         z_obsv = getMeasurement(rvec, t)
 
                         for i in range(3):
-                            error += abs(zi[i] - z_obsv[i])
-                            error += abs(normalize_angle(zi[i + 3] - z_obsv[i + 3]))
+                            error += 1000*abs(zi[i] - z_obsv[i])
+                            # error += abs(normalize_angle(zi[i + 3] - z_obsv[i + 3]))
     return error
 
 
@@ -95,6 +97,7 @@ def estimate_configuration_minimization(robot_state, robot_conf):
     for i in range(robot_conf.getLinksCount()):
         if len(robot_state.configuration_prev) > i:
             qinit.append(robot_state.configuration_prev[i])
+            # qinit.append(0.0)
         else:
             qinit.append(0.0)
 
@@ -108,19 +111,21 @@ def estimate_configuration_minimization(robot_state, robot_conf):
     # cons = ({'type': 'ineq', 'fun': lambda q: math.pi / 2 - abs(q[0])},
     #         {'type': 'ineq', 'fun': lambda q: math.pi/2 - abs(q[1]) })
 
-    # cons = ({'type': 'ineq', 'fun': lambda q: math.pi / 2 - abs(q[0])})
+    cons = ({'type': 'ineq', 'fun': lambda q: math.pi / 2 - abs(q[0])})
 
     res = minimize(configuration_error, q0,
                    args=(robot_state.markers_observations, robot_conf),
                    method='COBYLA',
-                   tol=1e-6
+                   tol=1e-12
                    # ,constraints=cons
                    )
+
+    # print(res.fun, configuration_error([0.0],robot_state.markers_observations, robot_conf))
 
     return res.x
 
 def getQ(dt, links):
-    Q_var = 0.005**2
+    Q_var = 0.5**2
     Q = Q_discrete_white_noise(dim=2, dt=dt, var=Q_var)
     Qfull = np.zeros((2*links,2*links))
     for i in range(links):
@@ -156,7 +161,9 @@ class Estimator:
         self.kf.F = getF(0.05, configuration_director.getRobotConf().getLinksCount())
         self.kf.Q = getQ(0.05, configuration_director.getRobotConf().getLinksCount())
         self.kf.H = getH(configuration_director.getRobotConf().getLinksCount())
-        self.kf.R = np.diag([0.001 ** 2] * configuration_director.getRobotConf().getLinksCount())
+        self.kf.R = np.diag([0.03 ** 2] * configuration_director.getRobotConf().getLinksCount())
+
+        self.kf.P = np.diag([0.5 ** 2, 0.000001 ** 2] * configuration_director.getRobotConf().getLinksCount())
 
         self.lastupdate = None
 

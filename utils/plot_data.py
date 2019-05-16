@@ -41,7 +41,7 @@ def plot(robot, estimation):
 
 def make_filter_bytime(states, start_time, end_time):
     def filter_func(measure):
-        return start_time < measure[states] < end_time
+        return start_time <= measure[states] < end_time
     return filter_func
 
 def make_time_scale(states, starttime_nonnormalized, starttime, timescale):

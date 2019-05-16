@@ -36,7 +36,7 @@ def fromZYZtoRmat(ZYZ):
 
 class Marker:
 
-    MARKER_SIZE = 0.045
+    MARKER_SIZE = 0.04375
 
     def __init__(self, id, trans, ZYZrot):
         self.id = id

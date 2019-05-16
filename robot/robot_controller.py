@@ -65,12 +65,12 @@ def test_connection():
 
 def test_command():
     rc = RobotController("192.168.0.183", 51449)
-    rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
-    start_time = time.time()
-    while start_time+1.0 > time.time():
-        rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
-        coords = rc.readPosition()
-        print(coords)
+    rc.sendPosition([0.0, 0.0, 0.0, 0.0, 0.0])
+    # start_time = time.time()
+    # while start_time+1.0 > time.time():
+    #     rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
+    coords = rc.readPosition()
+    print(coords)
 
 
 def experiment_sinsingle():
@@ -96,7 +96,7 @@ def experiment_sinus():
                     .replace("-", "") \
                     .replace(":", "") + ".txt"
 
-    camera = UsbCamera("http://192.168.137.84:8080/video", 'TecnoInf640', 15)
+    camera = UsbCamera("http://192.168.137.78:8080/video", 'TecnoInf640', 10)
     camera.recordVideo(60.0)
 
     with open(file_name, "a+") as log:
@@ -133,4 +133,4 @@ def writeExampleLog():
 
 
 if __name__ == '__main__':
-    writeExampleLog()
+    test_command()

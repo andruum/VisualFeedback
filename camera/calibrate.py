@@ -21,7 +21,7 @@ objectPointsArray = []
 imgPointsArray = []
 
 
-camera = FromImage("./configs/Defender/config_images","Defender",cycle=False,load_configs=False)
+camera = FromImage("./configs/TecnoInf1080/config_images","TecnoInf1080",cycle=False,load_configs=False)
 while True:
     try:
         img,_ = camera.getImage()

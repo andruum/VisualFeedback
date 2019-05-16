@@ -2,13 +2,13 @@ import cv2
 import os
 from os import path
 
-camera_name = "TecnoInf640"
+camera_name = "TecnoInf1080"
 
 final_path = path.join("configs", camera_name, "config_images")
 if not os.path.isdir(final_path):
     os.makedirs (final_path)
 
-cam = cv2.VideoCapture("http://192.168.1.190:8080/video")
+cam = cv2.VideoCapture("http://192.168.137.130:8080/video")
 
 # cam.set(cv2.CAP_PROP_FPS, 30)
 # cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
