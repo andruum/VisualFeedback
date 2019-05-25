@@ -65,10 +65,10 @@ def test_connection():
 
 def test_command():
     rc = RobotController("192.168.0.183", 51449)
-    rc.sendPosition([0.0, 0.0, 0.0, 0.0, 0.0])
-    # start_time = time.time()
-    # while start_time+1.0 > time.time():
-    #     rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
+    rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
+    start_time = time.time()
+    while start_time+1.0 > time.time():
+        rc.sendPosition([0.0, 0.0, 0.0, 0.5, 0.0])
     coords = rc.readPosition()
     print(coords)
 
@@ -107,6 +107,32 @@ def experiment_sinus():
             coords = rc.readPosition()
             log.write(str(coords))
             log.write("\n")
+
+def constant_vel_gen(vel, start_pos, end_pos):
+    time_start = time.time()
+    direction = (1, -1)[end_pos-start_pos < 0]
+    pos = start_pos
+    yield pos
+    while pos < end_pos:
+        deltatime = time.time() - time_start
+        pos += direction * deltatime
+        yield pos
+
+def move_constant_velocity():
+    rc = RobotController("192.168.0.183", 51449)
+
+    velocity = math.radians(5.0)
+    start_pos = math.radians(0.0)
+    end_pos = math.radians(30.0)
+
+    pos_gen = constant_vel_gen(velocity, start_pos, end_pos)
+
+    time_length = 10.0
+    starttime = time.time()
+    while time.time() < starttime + time_length:
+        rc.sendPosition([ 0.0, 0.0, next(pos_gen), 0.0, 0.0])
+        coords = rc.readPosition()
+        print(coords)
 
 def writeExampleLog():
     file_name = str(datetime.datetime.now()) \

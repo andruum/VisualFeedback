@@ -101,6 +101,12 @@ class Robot:
                     return True
         return False
 
+    def getLinkIdByMarkerId(self, marker_id):
+        for link_id in self.links.keys():
+            for marker in self.links[link_id]['markers']:
+                if marker_id == marker.id:
+                    return link_id
+        return link_id
 
     def getLinksCount(self):
         return len(self.links)

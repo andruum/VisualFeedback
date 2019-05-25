@@ -107,6 +107,7 @@ class UsbCamera(Camera):
         self.cap.set(cv.CAP_PROP_FRAME_WIDTH, self.resolution[0])
         self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
         self.cap.set(cv.CAP_PROP_BUFFERSIZE, 0)
+        self.cap.set(cv.CAP_PROP_FOCUS, 5)
 
 
     def getImage(self):

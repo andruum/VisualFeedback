@@ -40,6 +40,8 @@ def getMeasurementsVector(observations):
     return z, observed_markers
 
 
+
+
 def configuration_error(q, *args):
     observations = args[0]  # (cam, observed_markers, positions)
     robot_configuration = args[1]
@@ -49,9 +51,10 @@ def configuration_error(q, *args):
 
     T_w_l = T_w_base
 
-    error = 0
+    error = 0.0
 
     for i, qi in enumerate(q):
+        qi = math.radians(qi)
         d, a, al, offset_q = robot_configuration.getLinkParams(i)
         T_pl_cl = getTransformMatrix(qi+offset_q, d, a, al)
 
@@ -85,10 +88,65 @@ def configuration_error(q, *args):
                         z_obsv = getMeasurement(rvec, t)
 
                         for i in range(3):
-                            error += 1000*abs(zi[i] - z_obsv[i])
-                            # error += abs(normalize_angle(zi[i + 3] - z_obsv[i + 3]))
+                            error += 200*abs(zi[i] - z_obsv[i])
+                            error += abs(normalize_angle(zi[i + 3] - z_obsv[i + 3]))/math.pi*180
     return error
 
+def configuration_error_single(q, *args):
+    observations = args[0]  # (cam, observed_markers, positions)
+    robot_configuration = args[1]
+    link_id_cur = args[2]
+    other_links = args[3] # dict{link_id: qi}
+
+    R_w_base, t_w_base = robot_configuration.getBaseTransform()
+    T_w_base = fromRTtoTrans(R_w_base, t_w_base)
+
+    T_w_l = T_w_base
+
+    error = 0.0
+
+    for i in range(robot_configuration.getLinksCount()):
+        qi = 0.0
+        if i == link_id_cur:
+            qi = q
+        elif i in other_links:
+            qi = other_links[i]
+        d, a, al, offset_q = robot_configuration.getLinkParams(i)
+        T_pl_cl = getTransformMatrix(qi + offset_q, d, a, al)
+
+        T_w_l = np.matmul(T_w_l, T_pl_cl)
+
+        markers = robot_configuration.getMarkers(i)
+
+        for m in markers:
+
+            for obsv in observations:
+                (timestamp, cam, z) = obsv
+
+                for (id, rvec, t) in z:
+                    if m.id == id:
+
+                        t_l_m = m.translation
+                        R_l_m = m.rotation
+                        T_l_m = fromRTtoTrans(R_l_m, t_l_m)
+                        T_w_m = np.matmul(T_w_l, T_l_m)
+
+                        t_w_c, R_w_c = cam.getPosition()
+                        if t_w_c is None or R_w_c is None:
+                            continue
+                        t_w_c = t_w_c.reshape((-1, 1))
+
+                        T_w_c = fromRTtoTrans(R_w_c, t_w_c)
+                        T_c_m = np.matmul(inverseTransform(T_w_c), T_w_m)
+
+                        zi = getMeasureVectorFromTrans(T_c_m)
+
+                        z_obsv = getMeasurement(rvec, t)
+
+                        for i in range(3):
+                            error += 100 * abs(zi[i] - z_obsv[i])
+                            error += abs(normalize_angle(zi[i + 3] - z_obsv[i + 3])) / math.pi * 180
+    return error
 
 def estimate_configuration_minimization(robot_state, robot_conf):
 
@@ -100,7 +158,6 @@ def estimate_configuration_minimization(robot_state, robot_conf):
             # qinit.append(0.0)
         else:
             qinit.append(0.0)
-
 
     if len(qinit) == 0:
         return None
@@ -116,16 +173,16 @@ def estimate_configuration_minimization(robot_state, robot_conf):
     res = minimize(configuration_error, q0,
                    args=(robot_state.markers_observations, robot_conf),
                    method='COBYLA',
-                   tol=1e-12
+                   tol=1e-6 #Error calculated in meters
                    # ,constraints=cons
                    )
 
     # print(res.fun, configuration_error([0.0],robot_state.markers_observations, robot_conf))
 
+    # return [math.radians(q) for q in res.x]
     return res.x
-
 def getQ(dt, links):
-    Q_var = 0.5**2
+    Q_var = 0.01**2
     Q = Q_discrete_white_noise(dim=2, dt=dt, var=Q_var)
     Qfull = np.zeros((2*links,2*links))
     for i in range(links):
@@ -152,7 +209,7 @@ def getH(links):
 
 class Estimator:
 
-    def __init__(self, configuration_director):
+    def __init__(self, configuration_director, init_state = None):
         self.configuration_director = configuration_director
 
         self.kf = KalmanFilter(dim_x=2*configuration_director.getRobotConf().getLinksCount(),
@@ -167,9 +224,16 @@ class Estimator:
 
         self.lastupdate = None
 
+        if init_state is not None:
+            self.lastupdate = time.time()
+            self.kf.P = np.diag([0.000001 ** 2, 0.000001 ** 2] * configuration_director.getRobotConf().getLinksCount())
+            for i in range(len(init_state)):
+                self.kf.x[i*2] = init_state[i]
+
     def sense(self, robot_state):
 
         q_m = estimate_configuration_minimization(robot_state,self.configuration_director.getRobotConf())
+
 
         if self.lastupdate is None:
             if q_m is None:
@@ -187,4 +251,4 @@ class Estimator:
             if q_m is not None:
                 self.kf.update(q_m)
 
-        robot_state.configuration_estimation = [self.kf.x[i] for i in range(0,2*self.configuration_director.getRobotConf().getLinksCount(),2)]
+        robot_state.configuration_estimated = [self.kf.x[i] for i in range(0,2*self.configuration_director.getRobotConf().getLinksCount(),2)]

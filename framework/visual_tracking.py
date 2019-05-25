@@ -106,19 +106,19 @@ def createKalmanfilterCam(camera):
 
     f.x = np.array([0, 0, 0, 0, 0, 0])
 
-    f.P[0, 0] = 0.1 ** 2
-    f.P[1, 1] = 0.1 ** 2
-    f.P[2, 2] = 0.1 ** 2
+    f.P[0, 0] = 0.003 ** 2
+    f.P[1, 1] = 0.003 ** 2
+    f.P[2, 2] = 0.003 ** 2
     f.P[3, 3] = 0.1 ** 2
     f.P[4, 4] = 0.1 ** 2
     f.P[5, 5] = 0.1 ** 2
 
-    f.R[0, 0] = 0.02 ** 2
-    f.R[1, 1] = 0.02 ** 2
-    f.R[2, 2] = 0.02 ** 2
-    f.R[3, 3] = 0.01 ** 2
-    f.R[4, 4] = 0.01 ** 2
-    f.R[5, 5] = 0.01 ** 2
+    f.R[0, 0] = 0.003 ** 2
+    f.R[1, 1] = 0.003 ** 2
+    f.R[2, 2] = 0.003 ** 2
+    f.R[3, 3] = 1 ** 2
+    f.R[4, 4] = 1 ** 2
+    f.R[5, 5] = 1 ** 2
 
     f.Q *= 0.000333 ** 2
     return f
@@ -158,7 +158,6 @@ def estimateCamPosition(cam, filter, observations):
                         euler[2]])
         filter.predict()
         filter.update(z, markers=[marker])
-        #TODO use several markers at the same time
 
     camera_tvec = np.array([*filter.x[0:3]])
     camera_rmat = euler2mat(*filter.x[3:6])
@@ -172,8 +171,12 @@ class VisualTracking:
         self.configuration_director = configuration_director
         self.aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
         self.aruco_params = aruco.DetectorParameters_create()
-        # self.aruco_params.cornerRefinementMethod = cv.aruco.CORNER_REFINE_APRILTAG
+        self.aruco_params.cornerRefinementMethod = aruco.CORNER_REFINE_APRILTAG
         # self.aruco_params.cornerRefinementWinSize = 5
+        # self.aruco_params.cornerRefinementMinAccuracy = 0.05
+        # self.aruco_params.adaptiveThreshWinSizeMin = 3
+        # self.aruco_params.adaptiveThreshWinSizeMax = 64
+        # self.aruco_params.adaptiveThreshWinSizeStep = 5
         self.cameras = []
         self.camera_filters = []
         self.observationsz = None
@@ -211,7 +214,7 @@ class VisualTracking:
 
                 cv.imshow("aruco:", frame_markers)
                 cv.waitKey(50)
-                cv.imwrite("example_markers.png",frame_markers)
+                # cv.imwrite("example_markers.png",frame_markers)
 
             if ids is None:
                 continue

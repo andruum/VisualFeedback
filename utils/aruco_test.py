@@ -6,7 +6,7 @@ if __name__ == '__main__':
 
     # cam = UsbCamera(0,'WebCam')
     #cam = UsbCamera(1,'Defender')
-    cam = UsbCamera("http://192.168.137.22:8080/video",'TecnoInf1080',5)
+    cam = UsbCamera("http://192.168.137.13:8080/video",'TecnoInf1080',10)
     # cam = FromVideo("20190506182557089688.avi",'TecnoInf640',15)
     # cam = FromImage("../camera/configs/TECNO/ex1.jpg",'TECNO')
     cam_matrix,cam_distortion = cam.getIntrinsics()
@@ -14,6 +14,11 @@ if __name__ == '__main__':
 
     aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_50)
     aruco_params = aruco.DetectorParameters_create()
+    aruco_params.cornerRefinementMethod = aruco.CORNER_REFINE_APRILTAG
+    # aruco_params.cornerRefinementWinSize = 10
+    # aruco_params.cornerRefinementMaxIterations = 50
+    # aruco_params.cornerRefinementMinAccuracy = 0.2
+    # aruco_params.errorCorrectionRate  = 1.8
 
     import time
 

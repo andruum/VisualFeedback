@@ -3,10 +3,10 @@ import cv2
 import glob
 from camera import FromImage
 
-square_size = 20
+square_size = 22
 # Define the chess board rows and columns
-rows = 9
-cols = 7
+rows = 7
+cols = 10
 
 # Set the termination criteria for the corner sub-pixel algorithm
 criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.001)
@@ -21,7 +21,7 @@ objectPointsArray = []
 imgPointsArray = []
 
 
-camera = FromImage("./configs/TecnoInf1080/config_images","TecnoInf1080",cycle=False,load_configs=False)
+camera = FromImage("./configs/Logitech/config_images","Logitech",cycle=False,load_configs=False)
 while True:
     try:
         img,_ = camera.getImage()

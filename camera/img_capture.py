@@ -2,17 +2,19 @@ import cv2
 import os
 from os import path
 
-camera_name = "TecnoInf1080"
+camera_name = "Logitech"
 
-final_path = path.join("configs", camera_name, "config_images")
+final_path = path.join("./configs", camera_name, "config_images")
 if not os.path.isdir(final_path):
-    os.makedirs (final_path)
+    os.makedirs(final_path)
 
-cam = cv2.VideoCapture("http://192.168.137.130:8080/video")
+# cam = cv2.VideoCapture("http://192.168.137.13:8080/video")
+cam = cv2.VideoCapture(1)
 
-# cam.set(cv2.CAP_PROP_FPS, 30)
-# cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
-# cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
+cam.set(cv2.CAP_PROP_FPS, 30)
+cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cam.set(cv2.CAP_PROP_FOCUS,5)
 
 cv2.namedWindow("test")
 img_counter = 0
@@ -34,7 +36,7 @@ while True:
         # SPACE pressed
         img_counter_str = str(img_counter)
         img_counter_str = img_counter_str.zfill(2)
-        img_name = "{}/{}.png".format(final_path,img_counter_str)
+        img_name = "{}\{}.png".format(final_path,img_counter_str)
         cv2.imwrite(img_name, frame)
         print("{} written!".format(img_name))
         img_counter += 1
